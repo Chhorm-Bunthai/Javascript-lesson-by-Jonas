@@ -76,40 +76,111 @@ const displayMovements = function (movements){
     containerMovements.insertAdjacentHTML('afterbegin',html)
   });
 }
-displayMovements(account1.movements)
-const calcPrintBalance = function(movements){
-  const balance = movements.reduce((acc,mov)=> acc + mov,0);
-  labelBalance.textContent = `${balance} EUR`;
+const calcPrintBalance = function(acc){
+  acc.balance = acc.movements.reduce((acc,mov)=> acc + mov,0);
+  labelBalance.textContent = `${acc.balance} EUR`;
 };
-calcPrintBalance(account1.movements);
 
 
-const calcDisplaySummary = function (movements){
-  const incomes = movements.filter(mov=>mov > 0).reduce((acc,mov) =>   acc + mov,0
+const calcDisplaySummary = function (acc){
+  const incomes = acc.movements.filter(mov=>mov > 0).reduce((acc,mov) =>   acc + mov,0
   );
   labelSumIn.textContent = `${incomes}©`
 
-  const outcomes = movements.filter(mov=> mov<0).reduce((acc,mov)=>acc = mov , 0)
+  const outcomes = acc.movements.filter(mov=> mov<0).reduce((acc,mov)=>acc = mov , 0)
   labelSumOut.textContent = `${Math.abs(outcomes)}USD`;
 
-  const interest = movements.filter(mov => mov > 0).map(deposit => deposit * 1.2/100).filter((int,i,arr)=>{
-    console.log(arr);
+  const interest = acc.movements.filter(mov => mov > 0).map(deposit => deposit * acc.interestRate/100).filter((int,i,arr)=>{
+    // console.log(arr);
     return int >= 1;
   }).reduce((acc,int)=>acc = int , 0)
   labelSumInterest.textContent = `${interest}©`
 }
-calcDisplaySummary(account1.movements)
 
-// map method
-// const createUserName = function(accs){
+const createUserName = function(accs){
 
-//   accs.forEach(function(acc){
-//     acc.username=acc.owner.toLowerCase().split(' ').map(word =>word[0]).join('')
-//   })
+  accs.forEach(function(acc){
+    acc.username=acc.owner.toLowerCase().split(' ').map(word =>word[0]).join('')
+  })
 
-// }
-// createUserName(accounts)
-// console.log(accounts);
+}
+createUserName(accounts)
+console.log(accounts);
+
+//Event handler
+const updateUI = function(){
+  displayMovements(currentAccount.movements);
+      calcPrintBalance(currentAccount);
+      calcDisplaySummary(currentAccount)
+}
+
+let currentAccount;
+btnLogin.addEventListener('click',function(e){
+  e.preventDefault();
+  currentAccount = accounts.find(acc=>acc.username === inputLoginUsername.value);
+  console.log(currentAccount);
+
+  if (currentAccount?.pin === Number(inputLoginPin.value)){
+      labelWelcome.textContent = `welcome back, ${currentAccount.owner.split(' ')[0]}`;
+      containerApp.style.opacity = 100;
+      inputLoginPin.blur();
+
+      // clear input field
+      inputLoginUsername.value =inputLoginPin.value = '';
+      // update UI
+      updateUI(currentAccount)
+  }
+});
+
+btnTransfer.addEventListener('click',function(e){
+  e.preventDefault();
+  const amount = Number(inputTransferAmount.value);
+
+  const receiverAcc = accounts.find(acc=>acc.username === inputTransferTo.value);
+  inputTransferAmount.value=inputTransferTo.value = ''
+
+  if (amount > 0 && receiverAcc && currentAccount.balance >= amount && receiverAcc !== currentAccount?.username){
+
+    // doing the tranfer
+    currentAccount.movements.push(-amount)
+    receiverAcc.movements.push(amount)
+
+    updateUI(currentAccount)
+  }
+});
+
+btnClose.addEventListener('click', function(e){
+  e.preventDefault();
+  
+  if (currentAccount.username === inputCloseUsername.value && currentAccount.pin === Number(inputClosePin.value)){
+
+    const index = accounts.findIndex(acc => acc.username === currentAccount.username);
+
+    console.log(index);
+    // delete account
+    accounts.splice(index,1);
+
+    // hide UI
+    containerApp.style.opacity = 0;
+  }
+  inputCloseUsername.value=inputClosePin.value = '';
+})
+
+btnLoan.addEventListener('click',function(e){
+  e.preventDefault();
+
+  const amount = Number(inputLoanAmount.value);
+
+  if(amount > 0 && currentAccount.movements.some(mov=>mov>=amount*0.1)){
+    currentAccount.movements.push(amount);
+    updateUI(currentAccount)
+  }
+  inputLoanAmount.value = ''
+})
+
+
+
+
 
 
 /////////////////////////////////////////////////
@@ -125,8 +196,33 @@ const currencies = new Map([
 
 const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
 
-// Filter method
+// The find method
+// find method does not return new array but it only return the first element that satifies the condition
+// return only element
+// const firstWithdraw = movements.find(mov => mov < 0)
+// console.log(movements);
+// console.log(firstWithdraw);
+// console.log(accounts);
 
+// const account = accounts.find(acc => acc.owner === 'Jessica Davis');
+// console.log(account);
+
+
+
+// map method
+// const createUserName = function(accs){
+
+//   accs.forEach(function(acc){
+//     acc.username=acc.owner.toLowerCase().split(' ').map(word =>word[0]).join('')
+//   })
+
+// }
+// createUserName(accounts)
+// console.log(accounts);
+
+
+// Filter method
+// Return new array
 // const deposit = movements.filter(function(mov){
 //   return mov > 0
 // });
@@ -169,12 +265,39 @@ const movements = [200, 450, -400, 3000, -650, -130, 70, 1300];
 const eurToUsd = 1.1;
 
 // pipeline
-const totalDepositsUSD = movements.filter(mov => mov > 0 ).map(mov => mov * eurToUsd).reduce((acc,mov) => acc + mov, 0)
+// const totalDepositsUSD = movements.filter(mov => mov > 0 ).map(mov => mov * eurToUsd).reduce((acc,mov) => acc + mov, 0)
 // we can do this because of filter and map return array but reduce return a value not array so we can not do this anymore
-
-console.log(totalDepositsUSD);
-
+// console.log(totalDepositsUSD);
 
 
+
+
+/* Some and every */
+
+// console.log(movements.some(mov=>mov === -130));
+// const anyDeposit = movements.some(mov=>mov>5000)
+// console.log(anyDeposit);
+
+
+
+/* flat and flatmap */
+
+const arr = [[1,2,3],[4,5,6],7,8]
+console.log(arr.flat());
+const arrdeep = [[[1,2],3],[4,[5,6]],[7],8]
+console.log(arrdeep.flat(2));
+
+// flat
+// const overalBalance = accounts.map(acc=>
+//   acc.movements).flat().reduce((acc,mov)=> acc + mov,0)
+//   console.log(overalBalance);
+
+// flatmap
+// const overalBalance1 = accounts.flatMap(acc=>
+//   acc.movements).reduce((acc,mov)=> acc + mov,0)
+//   console.log(overalBalance1);
+
+
+/* Sorting Array */
 
 /////////////////////////////////////////////////
